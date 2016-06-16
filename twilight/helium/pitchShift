@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# usage
+# $ pitchShift USER_ID ORIGINAL
+
+# remove any tmp files
+rm tmp/$1.wav
+rm tmp/$1.mp3
+
+# convert to wav
+ffmpeg -i $2 tmp/$1.wav
+
+# match sample rate
+sox tmp/$1.wav -r 44100 tmp/$1-resample.wav
+mv tmp/$1-resample.wav tmp/$1.wav
+
+# pitch shift
+sox tmp/$1.wav tmp/$1-pitch.wav pitch 1200
+mv tmp/$1-pitch.wav tmp/$1.wav
+
+# mix
+sox --combine mix-power tmp/$1.wav gurgle.wav tmp/$1-mix.wav
+mv tmp/$1-mix.wav tmp/$1.wav
+
+# trim
+sox tmp/$1.wav tmp/$1-trim.wav trim 0 10
+mv tmp/$1-trim.wav tmp/$1.wav
+
+# convert to mp3
+ffmpeg -i tmp/$1.wav -ac 1 tmp/$1.mp3
+rm tmp/$1.wav
+
+echo tmp/$1.mp3
+
+
+# do some culling
+# tmpFolder=/Volumes/data/webservices/sql-dumps/$1
+# max=75
+# increment=0
+
+# for f in `ls -r "$tmpFolder/"`
+# 	do
+# 		let increment=increment+1
+
+# 		if [ $increment -gt $max ]
+# 			then
+# 				echo "Deleting $tmpFolder/$f..."
+# 				rm "$tmpFolder/$f"
+# 		fi
+# 	done
