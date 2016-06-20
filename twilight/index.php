@@ -7,6 +7,10 @@
 	$philippinesMapLinks = MapUtils::getMapLinks('11.5563841,113.5790874', $credentials);
 	
 	$foo = new Chatbot(array(
+		'content' => array(
+			'So long, {NAME_AVATAR}.'
+		)
+	), array(
 		1 => array(
 			'content' => array(
 				'Welcome to Divebot! You\'re about to descend nearly 500 feet (~150 meters) to the "twilight zone,” a dark & mysterious layer of ocean rarely visited by humans. Your mission: Stay alive, observe deep reefs, & find new species!',
@@ -43,7 +47,16 @@
 											'title' => 'Let\'s go!',
 											'payload' => json_encode(array(
 												'step' => 2,
-												'value' => 'Vanuatu'
+												'value' => array(
+													array(
+														'key' => 'location_choice',
+														'value' => 'Vanuatu'
+													),
+													array(
+														'key' => 'dive_site',
+														'value' => 'Cliffhanger'
+													)
+												)
 											))
 										)
 									)
@@ -63,7 +76,16 @@
 											'title' => 'Let\'s go!',
 											'payload' => json_encode(array(
 												'step' => 2,
-												'value' => 'Philippines'
+												'value' => array(
+													array(
+														'key' => 'location_choice',
+														'value' => 'Philippines'
+													),
+													array(
+														'key' => 'dive_site',
+														'value' => 'Devil\'s Point'
+													)
+												)
 											))
 										)
 									)
@@ -76,11 +98,32 @@
 			'response' => array(
 				'type' => 'button',
 				'choices' => array(
-					'Vanuatu',
-					'Philippines'
+					array(
+						array(
+							'key' => 'location_choice',
+							'value' => 'Vanuatu'
+						),
+						array(
+							'key' => 'dive_site',
+							'value' => 'Cliffhanger'
+						)
+					),
+					array(
+						array(
+							'key' => 'location_choice',
+							'value' => 'Philippines'
+						),
+						array(
+							'key' => 'dive_site',
+							'value' => 'Devil\'s Point'
+						)
+					)
 				)
 			),
-			'target_variable' => 'location_choice',
+			'target_variable' => array(
+				'location_choice',
+				'dive_site'
+			),
 			'destination' => 3
 		),
 		3 => array(
@@ -702,7 +745,7 @@
 									'title' => 'I\'m savvy—let\'s go',
 									'payload' => json_encode(array(
 										'step' => 21,
-										'destination' => 24 
+										'destination' => 26 
 									))
 								)
 							)
@@ -714,7 +757,7 @@
 				'type' => 'button',
 				'choices' => array(
 					23,
-					24
+					26
 				)
 			)
 		),
@@ -741,7 +784,7 @@
 									'title' => 'I\'m savvy—let\'s go',
 									'payload' => json_encode(array(
 										'step' => 22,
-										'destination' => 24 
+										'destination' => 26 
 									))
 								)
 							)
@@ -753,9 +796,406 @@
 				'type' => 'button',
 				'choices' => array(
 					23,
-					24
+					26
 				)
 			)
+		),
+		23 => array(
+			'content' => array(
+				'You probably already know that you exhale carbon dioxide, but CO² isn’t all you exhale—about 18% of it is actually unused oxygen. Regular scuba gear (called “open-circuit”) lets all that CO² and oxygen bubble right out into the water. Rebreathers, on the other hand, don’t let oxygen go to waste.',
+				'Rebreathers are "closed-loop" systems that keep your exhaled oxygen in the system, and add extra oxygen as needed. (They also "scrub out" the CO².) That lets you stay underwater way, way longer than usual. Plus, no bubbles to scare the fish! Another thing—',
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => '{NAME_BUDDY} says: "CHIPMUNK ATTACK! Rebreathers also add bursts of \'diluent\' to keep your oxygen from getting too concentrated, and diluent contains helium. When we talk to each other underwater (which works great if you yell), we end up sounding just like … well, wanna try it?"',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'Yeah—chipmunk me!',
+									'payload' => json_encode(array(
+										'step' => 23,
+										'destination' => 24 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'Nah, I\'m already pro',
+									'payload' => json_encode(array(
+										'step' => 23,
+										'destination' => 26 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					24,
+					26
+				)
+			)
+		),
+		24 => array(
+			'content' => array(
+				'Tap the mic symbol, press record, and say "Time to dive, science crusaders!" (Anything less cheesy works too.)'
+			),
+			'response' => array(
+				'type' => 'audio'
+			),
+			'target_variable' => 'audio',
+			'destination' => 25
+		),
+		25 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'Now you\'re speaking our language.',
+							'buttons' => array(
+								array(
+									'type' => 'web_url',
+									'url' => 'https://legacy.calacademy.org/chatbot/twilight/helium/?id={ID}&file={AUDIO}',
+									'title' => 'Listen 🔈'
+								)
+							)
+						)
+					)
+				),
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'Okay—rebreather ready? Let\'s get that thing on & do a safety check.',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'I\'ll do it myself',
+									'payload' => json_encode(array(
+										'step' => 25,
+										'destination' => 27 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'Ask for help',
+									'payload' => json_encode(array(
+										'step' => 25,
+										'destination' => 28 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'I\'m scared',
+									'payload' => json_encode(array(
+										'step' => 25,
+										'destination' => 29 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					27,
+					28,
+					29
+				)
+			)
+		),
+		26 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'Okay—rebreather ready? Let\'s get that thing on & do a safety check.',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'I\'ll do it myself',
+									'payload' => json_encode(array(
+										'step' => 26,
+										'destination' => 27 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'Ask for help',
+									'payload' => json_encode(array(
+										'step' => 26,
+										'destination' => 28 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'I\'m scared',
+									'payload' => json_encode(array(
+										'step' => 26,
+										'destination' => 29 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					27,
+					28,
+					29
+				)
+			)
+		),
+		27 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'Uh-oh, one of your hoses is twisted—that could have been really bad.',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'Ask for help',
+									'payload' => json_encode(array(
+										'step' => 27,
+										'destination' => 30 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					30
+				)
+			)
+		),
+		28 => array(
+			'content' => array(
+				'Smart. That\'s what dive buddies are for.'
+			),
+			'auto-advance' => true,
+			'destination' => 31
+		),
+		29 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'You can do it—{NAME_BUDDY}\'s got your back! Just ask for help.',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'Check me, buddy!',
+									'payload' => json_encode(array(
+										'step' => 29,
+										'destination' => 31 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					31
+				)
+			)
+		),
+		30 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => '{NAME_BUDDY} says: "Fixed it, you\'re set now. Remember to trust your teammates—that\'s the only way we all get back safe."',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'Sorry, trust issues',
+									'payload' => json_encode(array(
+										'step' => 30,
+										'destination' => 31 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					31
+				)
+			)
+		),
+		31 => array(
+			'content' => array(
+				'Safety check complete—you\'re good to go!',
+				'{NAME_BUDDY} says: "Looking good, {NAME_AVATAR}. Dive site {DIVE_SITE} unlocked! And here comes the card to prove it.',
+				array(
+					'attachment' => array(
+						'type' => 'image',
+						'payload' => array(
+							'url' => 'https://legacy.calacademy.org/chatbot/twilight/images/mask/?file={SELFIE}'
+						)
+					)
+				),
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'Legit! Okay, ready to drop? Better decide fast—you\'re carrying more than 200 pounds of gear and starting to overheat.',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'Let\'s do this!',
+									'payload' => json_encode(array(
+										'step' => 31,
+										'destination' => 32 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'Maybe?',
+									'payload' => json_encode(array(
+										'step' => 31,
+										'destination' => 33 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'I\'m scared',
+									'payload' => json_encode(array(
+										'step' => 31,
+										'destination' => 34 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					32,
+					33,
+					34
+				)
+			)
+		),
+		32 => array(
+			'content' => array(
+				'Welcome to {DIVE_SITE}. Let\'s get to work.'
+			),
+		),
+		33 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'This is no time for indecision—go deep or return to shore!',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'I\'m in!',
+									'payload' => json_encode(array(
+										'step' => 33,
+										'destination' => 32 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'Too scared!',
+									'payload' => json_encode(array(
+										'step' => 33,
+										'destination' => 35 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					32,
+					35
+				)
+			)
+		),
+		34 => array(
+			'content' => array(
+				array(
+					'attachment' => array(
+						'type' => 'template',
+						'payload' => array(
+							'template_type' => 'button',
+							'text' => 'Not feeling mission-ready? That\'s okay—it takes unusual skills and courage to dive this deep. No shame in quitting this game.',
+							'buttons' => array(
+								array(
+									'type' => 'postback',
+									'title' => 'No wait! I\'m in',
+									'payload' => json_encode(array(
+										'step' => 34,
+										'destination' => 32 
+									))
+								),
+								array(
+									'type' => 'postback',
+									'title' => 'Return to shore',
+									'payload' => json_encode(array(
+										'step' => 34,
+										'destination' => 35 
+									))
+								)
+							)
+						)
+					)
+				)
+			),
+			'response' => array(
+				'type' => 'button',
+				'choices' => array(
+					32,
+					35
+				)
+			)
+		),
+		35 => array(
+			'content' => array(
+				'Thanks for trying—have a coconut.'
+			),
 		),
 	));
 

@@ -25,16 +25,22 @@
 		protected $_credentials;
 		protected $_db = false;
 		protected $_steps;
-		protected $_userVariables;
+		protected $_exitStep;
+		protected $_userVariables = array();
 
-		public function __construct ($steps) {
+		public function __construct ($exitStep, $steps) {
 			require(dirname(__FILE__) . '/../private/credentials.php');
 			$this->_credentials = $credentials;
+			$this->_exitStep = $exitStep;
 			$this->_steps = $steps;
 
 			foreach ($this->_steps as $step) {
 				if (isset($step['target_variable'])) {
-					$this->_userVariables[] = $step['target_variable'];	
+					if (is_array($step['target_variable'])) {
+						$this->_userVariables = array_merge($this->_userVariables, $step['target_variable']);
+					} else {
+						$this->_userVariables[] = $step['target_variable'];	
+					}
 				}
 			}
 
@@ -324,6 +330,20 @@
 			$resource = $this->_getDBResource($query);
 		}
 
+		public function getMediaUrl ($attachments, $type) {
+			$url = false;
+
+			if (is_array($attachments)) {
+				foreach ($attachments as $attachment) {
+					if ($attachment->type == $type) {
+						$url = $attachment->payload->url;
+					}
+				}
+			}
+
+			return $url;
+		}
+
 		public function updateUserVariable ($step, $msg) {
 			// nothing to update
 			if (!isset($step['target_variable'])) return;
@@ -350,26 +370,37 @@
 					$obj = json_decode($postback);
 					$value = $obj->value;
 					break;
+				case 'audio':
+					$value = $this->getMediaUrl($attachments, 'audio');
+					break;
 				case 'text||image':
 				case 'text||selfie':
-					if (is_array($attachments)) {
-						foreach ($attachments as $attachment) {
-							if ($attachment->type == 'image') {
-								$value = $attachment->payload->url;
-							}
-						}
-					}
-
+					$value = $this->getMediaUrl($attachments, 'image');
 					break;
 			}
 			
 			if ($value === false) return;
 
 			$id = intval($id);
-			$column = mysql_real_escape_string($step['target_variable']);
-			$value = trim(mysql_real_escape_string($value));
+			
+			if (is_array($step['target_variable'])) {
+				if (!is_array($value)) return;
 
-			$query = "UPDATE user SET $column = '$value' WHERE id = '$id'";
+				$str = array();
+
+				foreach ($value as $val) {
+					$col = mysql_real_escape_string(trim($val->key));
+					$v = mysql_real_escape_string(trim($val->value));
+					$str[] = $col . ' = \'' . $v . '\'';
+				}
+
+				$query = "UPDATE user SET " . implode(', ', $str) . " WHERE id = '$id'";				
+			} else {
+				$column = mysql_real_escape_string($step['target_variable']);
+				$value = trim(mysql_real_escape_string($value));
+				$query = "UPDATE user SET $column = '$value' WHERE id = '$id'";
+			}
+			
 			$resource = $this->_getDBResource($query);
 		}
 
@@ -415,6 +446,7 @@
 					break;
 				case 'button':
 					$obj = json_decode($postback);
+					$choices = $step['response']['choices'];
 					
 					// not json
 					if (is_null($obj)) return false;
@@ -442,10 +474,22 @@
 							return true;
 						}
 					} else {
-						$val = $obj->value;
+						if (is_array($obj->value)) {
+							$cast = json_decode(json_encode($obj->value), true);
+
+							foreach ($choices as $choice) {
+								if ($choice == $cast) {
+									return true;
+								}
+							}
+
+							return false;
+						} else {
+							$val = $obj->value;	
+						}
 					}
 					
-					if (!in_array($val, $step['response']['choices'])) return false;
+					if (!in_array($val, $choices)) return false;
 
 					return true;
 					break;
@@ -464,6 +508,15 @@
 					}
 
 					if ($hasText || $hasImage) return true;
+					break;
+				case 'audio':
+					if (is_array($attachments)) {
+						foreach ($attachments as $attachment) {
+							if ($attachment->type == 'audio') {
+								return true;
+							}
+						}
+					}
 					break;
 			}
 
@@ -491,18 +544,42 @@
 			}
 		}
 
-		protected function _sendMessage ($id, $userData, $step) {
-			if (!isset($this->_steps[$step])) {
+		protected function _getUserValueForKey ($key, $value) {
+			switch (strtolower($key)) {
+				case 'name_avatar':
+					if (empty($value)) {
+						return 'anonymous diver';
+					} else {
+						return $value;
+					}
+					break;
+				case 'selfie':
+				case 'audio':
+					return urlencode($value);
+					break;
+				default:
+					return $value;
+			}
+		}
+
+		protected function _sendMessage ($id, $userData, $stepIndex) {
+			if ($stepIndex != -1 && !isset($this->_steps[$stepIndex])) {
 				// @todo
 				$this->send($id, 'error! step not found.');
 				return;
 			}
 
-			$msgs = $this->_steps[$step]['content'];
-
-			foreach ($msgs as $msg) {
+			if ($stepIndex == -1) {
+				$step = $this->_exitStep;
+			} else {
+				$step = $this->_steps[$stepIndex];	
+			}
+			
+			foreach ($step['content'] as $msg) {
 				// plug in user variables
-				$userVariables = array();
+				$userVariables = array(
+					'name_avatar' => ''
+				);
 
 				foreach ($this->_userVariables as $var) {
 					if (!empty($userData[$var])) {
@@ -514,14 +591,16 @@
 					if (is_array($msg)) {
 						array_walk_recursive($msg, function (&$v, $k, $param) {
 							if (is_string($v)) {
-								$v = str_replace('{' . strtoupper($param['key']) . '}', $param['value'], $v);
+								$newVal = $this->_getUserValueForKey($param['key'], $param['value']);
+								$v = str_replace('{' . strtoupper($param['key']) . '}', $newVal, $v);
 							}
 						}, array(
 							'key' => $key,
 							'value' => $value
 						));
 					} else {
-						$msg = str_replace('{' . strtoupper($key) . '}', $value, $msg);
+						$newVal = $this->_getUserValueForKey($key, $value);
+						$msg = str_replace('{' . strtoupper($key) . '}', $newVal, $msg);
 					}
 				}
 
@@ -538,6 +617,12 @@
 
 				$this->send($id, $msg);
 			}
+
+			if ($step['auto-advance'] && isset($step['destination'])) {
+				// doing an auto-advance
+				$this->updateStep($id, $step['destination']);
+				$this->_sendMessage($id, $userData, $step['destination']);
+			}
 		}
 
 		protected function _respond ($msg) {
@@ -553,12 +638,17 @@
 			}
 
 			$userData = $this->getUserData($id);
+			$cleanText = $this->getCleanString($text);
 
 			if (is_array($userData) && $userData['step'] > 0) {
 				$this->logUserMessage($id, $userData['step'], $msg);
 				
-				// @todo
 				// exit point
+				if ($cleanText == 'quit') {
+					$this->updateStep($id, -1, !is_array($userData));
+					$this->_sendMessage($id, $userData, -1);
+					return;
+				}
 
 				$step = $this->_steps[$userData['step']];
 				$isValidResponse = $this->isValidResponse($step, $userData['step'], $msg);
@@ -566,6 +656,8 @@
 				// check if response meets requirements
 				if ($isValidResponse === true) {
 					// update any variables
+					// @todo
+					// off-step button press?
 					$this->updateUserVariable($step, $msg);
 					$userData = $this->getUserData($id);
 
@@ -601,8 +693,6 @@
 					$this->send($id, 'error! invalid response.');
 				}
 			} else {
-				$cleanText = $this->getCleanString($text);
-				
 				if ($cleanText == 'divein') {
 					// entry point
 					$this->logUserMessage($id, 0, $msg);
