@@ -151,7 +151,7 @@
 									'title' => 'Got it',
 									'payload' => json_encode(array(
 										'step' => 4,
-										'value' => 1
+										'destination' => 5
 									))
 								)
 							)
@@ -162,10 +162,9 @@
 			'response' => array(
 				'type' => 'button',
 				'choices' => array(
-					1
+					5
 				)
-			),
-			'destination' => 5
+			)
 		),
 		5 => array(
 			'content' => array(

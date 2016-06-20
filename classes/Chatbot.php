@@ -428,6 +428,12 @@
 			$attachments = $msg->message->attachments;
 			$postback = $msg->postback->payload;
 
+			// always assume a button press is valid
+			if (!empty($postback)) {
+				$obj = json_decode($postback);
+				if (!is_null($obj)) return true;	
+			}
+			
 			$response = $step['response'];
 
 			switch ($response['type']) {
@@ -446,50 +452,9 @@
 					break;
 				case 'button':
 					$obj = json_decode($postback);
-					$choices = $step['response']['choices'];
 					
 					// not json
 					if (is_null($obj)) return false;
-					
-					// steps don't match
-					if ($obj->step != $stepNum) return false;
-
-					// no value
-					if (empty($obj->value) && empty($obj->destination)) return false;
-
-					// not a possible value
-					$val = false;
-
-					if (empty($obj->value)) {
-						// validating button destination(s)
-						if (is_numeric($obj->destination)) {
-							$val = $obj->destination;
-						} else {
-							foreach ($obj->destination->choices as $choice) {
-								if (!in_array($choice->destination, $step['response']['choices'])) {
-									return false;
-								}
-							}
-
-							return true;
-						}
-					} else {
-						if (is_array($obj->value)) {
-							$cast = json_decode(json_encode($obj->value), true);
-
-							foreach ($choices as $choice) {
-								if ($choice == $cast) {
-									return true;
-								}
-							}
-
-							return false;
-						} else {
-							$val = $obj->value;	
-						}
-					}
-					
-					if (!in_array($val, $choices)) return false;
 
 					return true;
 					break;
@@ -655,9 +620,14 @@
 				
 				// check if response meets requirements
 				if ($isValidResponse === true) {
+					$obj = json_decode($postback);
+
+					if (!is_null($obj)) {
+						// get step from button
+						$step = $this->_steps[$obj->step];
+					}
+
 					// update any variables
-					// @todo
-					// off-step button press?
 					$this->updateUserVariable($step, $msg);
 					$userData = $this->getUserData($id);
 
@@ -668,7 +638,6 @@
 						$destination = $step['destination'];
 					} else {
 						// getting destination from button value
-						$obj = json_decode($postback);
 						$destination = $obj->destination;
 
 						if (!is_numeric($destination)) {
