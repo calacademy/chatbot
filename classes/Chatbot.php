@@ -499,11 +499,14 @@
 			}
 		}
 
-		protected function _getTruncated ($key, $str) {
+		public function getTruncated ($key, $str) {
 			if ($key != 'text') return $str;
 
-			if (strlen($str) > 320) {
-				return substr($str, 0, 319) . '…';
+			$max = 320;
+			$clean = utf8_decode(html_entity_decode($str));
+			
+			if (strlen($clean) > $max) {
+				return substr($str, 0, ($max - 1)) . '…';
 			} else {
 				return $str;
 			}
@@ -573,11 +576,11 @@
 				if (is_array($msg)) {
 					array_walk_recursive($msg, function (&$v, $k) {
 						if (is_string($v)) {
-							$v = $this->_getTruncated($k, $v);
+							$v = $this->getTruncated($k, $v);
 						}
 					});
 				} else {
-					$msg = $this->_getTruncated('text', $msg);
+					$msg = $this->getTruncated('text', $msg);
 				}
 
 				$this->send($id, $msg);
