@@ -152,9 +152,19 @@
 			return $str;
 		}
 
-		public function getImageData ($str) {
+		public function getImageData ($str, $features = null) {
 			$imgData = $this->_getBase64($str);
 			if (!$imgData) return false;
+
+			if (is_null($features)) {
+				// default
+				$features = array(
+					array(
+						'type' => 'FACE_DETECTION',
+						'maxResults' => 100
+					)
+				);
+			}
 
 			$payload = json_encode(array(
 				'requests' => array(
@@ -162,18 +172,7 @@
 						'image' => array(
 							'content' => $imgData
 						),
-						'features' => array(
-							array(
-								'type' => 'LABEL_DETECTION'
-							),
-							array(
-								'type' => 'FACE_DETECTION',
-								'maxResults' => 100
-							),
-							array(
-								'type' => 'LANDMARK_DETECTION'
-							)
-						)
+						'features' => $features
 					)
 				)
 			));
